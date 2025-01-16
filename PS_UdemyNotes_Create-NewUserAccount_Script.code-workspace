@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../Powershell Udemy"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"powershell.cwd": "Create-NewUserAccount"
+	}
+}
