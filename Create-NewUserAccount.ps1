@@ -16,12 +16,17 @@ function Create-NewUserAccount {
     foreach($employee in $NewEmployeeInfo) {
         try {
             $Password = ConvertTo-SecureString $employee.password -AsPlainText -Force
-            #New-AdUser -Name $employee.FirstName -Surname $employee.LastName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -Department $employee.Department -Title $employee.jobtitle -Manager $employee.manager -phonenumber $employee.phonenumber -office $employee.officelocation
-            New-AdUser -Name $employee.FirstName -Surname $employee.LastName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password
+            $FullName = $employee.Firstname + " " + $employee.LastName
+
+            # These parameters will throw errors, read docs on why:
+            # -Manager $employee.manager
+            # -phonenumber $employee.phonenumber
+            # -office $employee.officelocation
+            New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle
             "Successfully created user " + $employee.username
         }
         catch {
-            "Failed to create user."
+            "Failed to create an account for user $FullName"
         }
 
     }
