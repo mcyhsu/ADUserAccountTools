@@ -1,0 +1,6 @@
+FirstName,LastName,Username,Email,Password,Department,JobTitle,Manager,PhoneNumber,OfficeLocation,ExpirationDate,Groups
+Liam,Johnson,ljohnson,liam.johnson@company.com,Temp123!,Sales,Sales Representative,msmith,555-1234,New York,12/31/2024,"Sales Team,All Employees"
+Emma,Williams,ewilliams,emma.williams@company.com,Temp456!,Marketing,Marketing Coordinator,jbrown,555-5678,Los Angeles,,"Marketing Team,All Employees"
+Noah,Brown,nbrown,noah.brown@company.com,Temp789!,Engineering,Software Engineer,adavis,555-9012,San Francisco,6/30/2025,"Engineering Team,All Employees"
+Olivia,Jones,ojones,olivia.jones@company.com,Temp234!,Human Resources,HR Manager,mrodriguez,555-3456,Chicago,,"HR Team,All Employees,Managers"
+William,Garcia,wgarcia,william.garcia@company.com,Temp567!,Finance,Financial Analyst,rlee,555-7890,Houston,9/15/2023,"Finance Team,All Employees"
