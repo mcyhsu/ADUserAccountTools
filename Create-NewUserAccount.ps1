@@ -34,7 +34,7 @@ function Create-NewUserAccount {
                 # May need to change arguments depending on wording of the headings in the CSV file
                 New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath
 
-                'Successfully created an account for user' + $employee.username
+                Write-Host "Successfully created an account for user $($employee.username)."
 
                 # Store success result as an object
                 $CreateResult = [PSCustomObject]@{
@@ -44,7 +44,7 @@ function Create-NewUserAccount {
                 $CreationResults = $CreationResults + $CreateResult
             }
             catch {
-                'Failed to create an account for user ' + $employee.username + '. They may already exist or there was an error in the provided information.'
+                Write-Host "Failed to create an account for user $($employee.username). They may already exist or there was an error in the provided information."
 
                 # Store failure result as an object
                 $result = [PSCustomObject]@{
@@ -115,7 +115,7 @@ function DeleteAccounts {
                 # Checks if the user exists before deleting the account
                 if(Get-LocalUser -Name $UserReference -ErrorAction Stop) {
                     Remove-Localuser -name $UserReference -ErrorAction Stop
-                    'Successfully deleted user account ' + $UserReference + ' from the organization.'
+                    Write-Host "Successfully deleted user account $UserReference from the organization."
                 }
 
                 # User successfully deleted, store the result into $results
@@ -127,7 +127,7 @@ function DeleteAccounts {
                 $DeletionResults = $DeletionResults + $DeleteResult
             }
             catch {
-                'Failed to delete user ' + $UserReference + '. They may not exist or there was an error in the provided information.'
+                Write-Host "Failed to delete user $($UserReference). They may not exist or there was an error in the provided information."
 
                 # User doesn't exist, store the result into $results
                 $DeleteResult = [PSCustomObject]@{
