@@ -19,19 +19,23 @@ function Create-NewUserAccount {
     }
 
     if ($ImportSuccess) {
-        try {
-            foreach($employee in $NewEmployeeInfo) {
+        foreach($employee in $NewEmployeeInfo) {
+            try {
                 $Password = ConvertTo-SecureString $employee.password -AsPlainText -Force
                 $FullName = $employee.Firstname + " " + $employee.LastName
+
+                # This variable will be used to sort users into their proper department OU
                 $OUPath = "OU=Users,OU="+ $employee.department + ",OU=USA,DC=Test,DC=local"
 
                 # May need to change arguments depending on wording of the headings in the CSV file
                 New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath
                 "Successfully created user " + $employee.username
             }
-        } catch {
-            'Failed to create user ' + $employee.username
+            catch {
+                'Failed to create user ' + $employee.username
+            }
         }
+
     }
 }
 
