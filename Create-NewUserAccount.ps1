@@ -79,28 +79,39 @@ function DeleteAccounts {
 
     # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
     if($ImportSuccess) {
+        # Initialize an array that will hold the results
+        $results = @()
+        
         foreach($user in $AccountsToDelete) {
-            try {
-                # Tests if user exists before attempted deletion
-                if(Get-ADUser -Identity $user) {
-                    if($CsvOrTxt -eq 'txt') {
-                        Remove-Localuser -name $user -ErrorAction Stop
-                        'Deleted user account ' + $user + ' from the organization.'
-                    }
-                    elseif($CsvOrTxt -eq 'csv') {
-                        Remove-Localuser -name $user.username -ErrorAction Stop
-                        'Deleted user account ' + $user.username + ' from the organization.'
-                    }
+            # Determines the proper way to reference the Username depending on if a .txt or .csv file was imported
+            $UserReference = if($CsvOrTxt -eq 'txt') { $user } else { $user.username }
+
+            try { 
+                # Checks if the user exists before deleting the account
+                if(Get-LocalUser -Identity $UserReference) {
+                    Remove-Localuser -name $UserReference -ErrorAction Stop
+                    'Deleted user account ' + $UserReference + ' from the organization.'
                 }
+
+                # User successfully deleted, store the result into $results
+                $result = [PSCustomObject]@{
+                    'Username' = $UserReference
+                    'Exists' = 'yes'
+                    'Deleted' = 'yes'
+                }
+                $results = $results + $result
             }
             catch {
-                "User $user does not exist in the system."
+                # User doesn't exist, store the result into $results
+                $result = [PSCustomObject]@{
+                    'Username' = $UserReference
+                    'Exists' = 'no'
+                    'Deleted' = 'no'
+                }
+                $results = $results + $result
             }
         }
 
-
-
     }
-
-
+    $results
 }
