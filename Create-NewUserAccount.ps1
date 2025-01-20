@@ -19,6 +19,10 @@ function Create-NewUserAccount {
     }
 
     if ($ImportSuccess) {
+
+        # Initialize an empty array that will store the results of the operation
+        $CreationResults = @()
+
         foreach($employee in $NewEmployeeInfo) {
             try {
                 $Password = ConvertTo-SecureString $employee.password -AsPlainText -Force
@@ -29,14 +33,31 @@ function Create-NewUserAccount {
 
                 # May need to change arguments depending on wording of the headings in the CSV file
                 New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath
-                "Successfully created user " + $employee.username
+
+                'Successfully created an account for user' + $employee.username
+
+                # Store success result as an object
+                $CreateResult = [PSCustomObject]@{
+                    'Username' = $employee.username
+                    'Status' = 'Created'
+                }
+                $CreationResults = $CreationResults + $CreateResult
             }
             catch {
-                'Failed to create user ' + $employee.username
+                'Failed to create an account for user ' + $employee.username + '. They may already exist or there was an error in the provided information.'
+
+                # Store failure result as an object
+                $result = [PSCustomObject]@{
+                    'Username' = $employee.username
+                    'Status' = 'Not created'
+                }
+                $CreationResults = $CreationResults + $CreateResult
+
             }
         }
-
     }
+    # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
+    $CreationResults
 }
 
 
@@ -50,7 +71,7 @@ function DeleteAccounts {
     $DialogBox.filter = 'All files (*.*)|*.*|csv files (*.csv)|*.csv|txt files (*.txt)|*.txt'
 
     $ImportSuccess = $true
-    $AccountsToDelete = $null
+    $AccountsToDelete = ''
     $CsvOrTxt = ''
 
     # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
@@ -84,38 +105,41 @@ function DeleteAccounts {
     # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
     if($ImportSuccess) {
         # Initialize an array that will hold the results
-        $results = @()
+        $DeletionResults = @()
         
-        foreach($user in $AccountsToDelete) {
-            # Determines the proper way to reference the Username depending on if a .txt or .csv file was imported
-            $UserReference = if($CsvOrTxt -eq 'txt') { $user } else { $user.username }
+        foreach($employee in $AccountsToDelete) {
+            # Determines the proper way to reference the Username depending on whether a .txt or .csv file was imported
+            $UserReference = if($CsvOrTxt -eq 'txt') { $employee } else { $employee.username }
 
             try { 
                 # Checks if the user exists before deleting the account
-                if(Get-LocalUser -Identity $UserReference) {
+                if(Get-LocalUser -Name $UserReference -ErrorAction Stop) {
                     Remove-Localuser -name $UserReference -ErrorAction Stop
-                    'Deleted user account ' + $UserReference + ' from the organization.'
+                    'Successfully deleted user account ' + $UserReference + ' from the organization.'
                 }
 
                 # User successfully deleted, store the result into $results
-                $result = [PSCustomObject]@{
+                $DeleteResult = [PSCustomObject]@{
                     'Username' = $UserReference
                     'Exists' = 'yes'
                     'Deleted' = 'yes'
                 }
-                $results = $results + $result
+                $DeletionResults = $DeletionResults + $DeleteResult
             }
             catch {
+                'Failed to delete user ' + $UserReference + '. They may not exist or there was an error in the provided information.'
+
                 # User doesn't exist, store the result into $results
-                $result = [PSCustomObject]@{
+                $DeleteResult = [PSCustomObject]@{
                     'Username' = $UserReference
                     'Exists' = 'no'
                     'Deleted' = 'no'
                 }
-                $results = $results + $result
+                $DeletionResults = $DeletionResults + $DeleteResult
             }
         }
 
     }
-    $results
+    # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
+    $DeletionResults
 }
