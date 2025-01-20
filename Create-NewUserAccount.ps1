@@ -21,12 +21,12 @@ function Create-NewUserAccount {
     if ($ImportSuccess) {
         try {
             foreach($employee in $NewEmployeeInfo) {
-        
                 $Password = ConvertTo-SecureString $employee.password -AsPlainText -Force
                 $FullName = $employee.Firstname + " " + $employee.LastName
+                $OUPath = "OU=Users,OU="+ $employee.department + ",OU=USA,DC=Test,DC=local"
 
                 # May need to change arguments depending on wording of the headings in the CSV file
-                New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true
+                New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath
                 "Successfully created user " + $employee.username
             }
         } catch {
@@ -77,21 +77,29 @@ function DeleteAccounts {
         $ImportSuccess = $false
     }
 
-    # Run this code block if the user loaded a .csv or .txt file
-    # Deletes the user accounts according to the information provided by the .csv or .txt file
+    # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
     if($ImportSuccess) {
-        if($CsvOrTxt -eq 'csv') {
-            foreach($user in $AccountsToDelete){
-                Remove-LocalUser -name $user.username -ErrorAction Stop
-                'Deleted user account ' + $user.username + ' from the organization.'
+        foreach($user in $AccountsToDelete) {
+            try {
+                # Tests if user exists before attempted deletion
+                if(Get-ADUser -Identity $user) {
+                    if($CsvOrTxt -eq 'txt') {
+                        Remove-Localuser -name $user -ErrorAction Stop
+                        'Deleted user account ' + $user + ' from the organization.'
+                    }
+                    elseif($CsvOrTxt -eq 'csv') {
+                        Remove-Localuser -name $user.username -ErrorAction Stop
+                        'Deleted user account ' + $user.username + ' from the organization.'
+                    }
+                }
+            }
+            catch {
+                "User $user does not exist in the system."
             }
         }
-        elseif($CsvOrTxt -eq 'txt') {
-            foreach($user in $AccountsToDelete){
-                Remove-Localuser -name $user -ErrorAction Stop
-                'Deleted user account ' + $user + ' from the organization.' 
-            }
-        }
+
+
+
     }
 
 
