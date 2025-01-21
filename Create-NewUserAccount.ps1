@@ -1,4 +1,4 @@
-function Create-NewUserAccount {
+function New-AdUserAccount {
     
     $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
@@ -66,7 +66,7 @@ function Create-NewUserAccount {
 }
 
 
-function DeleteAccounts {
+function Remove-AdUserAccount {
     $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
     # Sets the file dialog starting point at C:\
