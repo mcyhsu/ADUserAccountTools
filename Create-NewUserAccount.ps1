@@ -10,12 +10,16 @@ function Create-NewUserAccount {
 
     $ImportSuccess = $true
 
+    Write-Host 'Please select the CSV file with the employee information and click on Open to begin creating their accounts.' -ForegroundColor Yellow
+
     # ShowDialog() displays the file dialog and captures the result (OK, CANCEL).
     if($DialogBox.ShowDialog() -eq 'OK') {
         $NewEmployeeInfo = Import-Csv -path $DialogBox.FileName
     }
     else {
         $ImportSuccess = $false
+        Write-Host 'Account creation cancelled. ' -ForegroundColor Red -NoNewline
+        Write-Host 'Please run the Create-NewUserAccount function again if you still want to create accounts.' -ForegroundColor Yellow
     }
 
     if ($ImportSuccess) {
@@ -34,7 +38,7 @@ function Create-NewUserAccount {
                 # May need to change arguments depending on wording of the headings in the CSV file
                 New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath -ErrorAction Stop
 
-                Write-Host "Successfully created an account for user $($employee.username)."
+                Write-Host "Successfully created an account for user $($employee.username)." -ForegroundColor Green
 
                 # Store success result as an object
                 $CreateResult = [PSCustomObject]@{
@@ -44,7 +48,8 @@ function Create-NewUserAccount {
                 $CreationResults = $CreationResults + $CreateResult
             }
             catch {
-                Write-Host "Failed to create an account for user $($employee.username). They may already exist or there was an error in the provided information."
+                Write-Host "Failed to create an account for user $($employee.username). " -ForegroundColor Red -NoNewline
+                Write-Host 'They may already exist or there was an error in the provided information.' -ForegroundColor Yellow
 
                 # Store failure result as an object
                 $CreateResult = [PSCustomObject]@{
@@ -57,7 +62,7 @@ function Create-NewUserAccount {
         }
     }
     # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $CreationResults
+    $CreationResults | Sort-Object -Property 'Status' -Descending | Format-Table -Autosize
 }
 
 
@@ -73,6 +78,8 @@ function DeleteAccounts {
     $ImportSuccess = $true
     $AccountsToDelete = ''
     $CsvOrTxt = ''
+
+    Write-Host 'Please select the CSV or TXT file with the usernames of the accounts you want to delete and click on Open' -ForegroundColor Yellow
 
     # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
     if($DialogBox.ShowDialog() -eq 'OK') {
@@ -100,6 +107,9 @@ function DeleteAccounts {
     else {
         # What happens if the user presses CANCEL in the file dialog
         $ImportSuccess = $false
+
+        Write-Host 'Account deletion cancelled. ' -ForegroundColor Red -NoNewline
+        Write-Host 'Please run the DeleteAccounts function again if you still want to delete accounts.' -ForegroundColor Yellow
     }
 
     # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
@@ -115,25 +125,24 @@ function DeleteAccounts {
                 # Checks if the user exists before deleting the account
                 if(Get-LocalUser -Name $UserReference -ErrorAction Stop) {
                     Remove-Localuser -name $UserReference -ErrorAction Stop
-                    Write-Host "Successfully deleted user account $UserReference from the organization."
+                    Write-Host "Successfully deleted user account $UserReference from the organization." -ForegroundColor Green
                 }
 
                 # User successfully deleted, store the result into $results
                 $DeleteResult = [PSCustomObject]@{
                     'Username' = $UserReference
-                    'Exists' = 'yes'
-                    'Deleted' = 'yes'
+                    'Status' = 'Deleted'
                 }
                 $DeletionResults = $DeletionResults + $DeleteResult
             }
             catch {
-                Write-Host "Failed to delete user $($UserReference). They may not exist or there was an error in the provided information."
+                Write-Host "Failed to delete user $($UserReference). " -ForegroundColor Red -NoNewline
+                Write-Host 'They may not exist or there was an error in the provided information.' -ForegroundColor Yellow
 
                 # User doesn't exist, store the result into $results
                 $DeleteResult = [PSCustomObject]@{
                     'Username' = $UserReference
-                    'Exists' = 'no'
-                    'Deleted' = 'no'
+                    'Status' = "Doesn't exist"
                 }
                 $DeletionResults = $DeletionResults + $DeleteResult
             }
@@ -141,5 +150,5 @@ function DeleteAccounts {
 
     }
     # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $DeletionResults
+    $DeletionResults | Sort-Object -Property 'Deleted' -Descending | Format-Table -Autosize
 }
