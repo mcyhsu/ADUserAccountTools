@@ -8,6 +8,6 @@
 		}
 	],
 	"settings": {
-		"powershell.cwd": "Create-NewUserAccount"
+		"powershell.cwd": "ADUserAccountTools"
 	}
 }
