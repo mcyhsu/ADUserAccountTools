@@ -1,5 +1,4 @@
-function New-ADUserAccount {
-    
+function New-BulkADUser {
     $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
     # Sets the file dialog starting point at C:\
@@ -19,7 +18,7 @@ function New-ADUserAccount {
     else {
         $ImportSuccess = $false
         Write-Host 'Account creation cancelled. ' -ForegroundColor Red -NoNewline
-        Write-Host 'Please run the Create-NewUserAccount function again if you still want to create accounts.' -ForegroundColor Yellow
+        Write-Host 'Please run the New-BulkADUser function again if you still want to create accounts.' -ForegroundColor Yellow
     }
 
     if ($ImportSuccess) {
@@ -33,9 +32,13 @@ function New-ADUserAccount {
                 $FullName = $employee.Firstname + " " + $employee.LastName
 
                 # This variable will be used to sort users into their proper department OU
+                # Modify the path as needed, this is what works for my test environment
                 $OUPath = "OU=Users,OU="+ $employee.department + ",OU=USA,DC=Test,DC=local"
 
-                # May need to change arguments depending on wording of the headings in the CSV file
+                <#
+                The New-ADUser cmdlet below may need to be changed depending on what the headings are in your CSV file.
+                You can also add more parameters to the cmdlet as needed, such as phone number, location, description, etc.
+                #>
                 New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath -ErrorAction Stop
 
                 Write-Host "Successfully created an account for user $($employee.username)." -ForegroundColor Green
@@ -57,7 +60,6 @@ function New-ADUserAccount {
                     'Status' = 'Not created'
                 }
                 $CreationResults = $CreationResults + $CreateResult
-
             }
         }
     }
@@ -65,8 +67,7 @@ function New-ADUserAccount {
     $CreationResults | Sort-Object -Property 'Status' -Descending | Format-Table -Autosize
 }
 
-
-function Remove-ADUserAccount {
+function Remove-BulkADUser {
     $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
     # Sets the file dialog starting point at C:\
@@ -83,8 +84,7 @@ function Remove-ADUserAccount {
 
     # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
     if($DialogBox.ShowDialog() -eq 'OK') {
-        # This block executes if the user presses OK in the file dialog
-        
+
         # Stores path to file in $FilePath
         $FilePath = $DialogBox.FileName
 
@@ -102,14 +102,13 @@ function Remove-ADUserAccount {
             'Please import a CSV or TXT file.'
             $ImportSuccess = $false
         }
-
     }
     else {
         # What happens if the user presses CANCEL in the file dialog
         $ImportSuccess = $false
 
         Write-Host 'Account deletion cancelled. ' -ForegroundColor Red -NoNewline
-        Write-Host 'Please run the DeleteAccounts function again if you still want to delete accounts.' -ForegroundColor Yellow
+        Write-Host 'Please run the Remove-BulkADUser function again if you still want to delete accounts.' -ForegroundColor Yellow
     }
 
     # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
@@ -125,9 +124,8 @@ function Remove-ADUserAccount {
                 # Checks if the user exists before deleting the account
                 if(Get-LocalUser -Name $UserReference -ErrorAction Stop) {
                     Remove-Localuser -name $UserReference -ErrorAction Stop
-                    Write-Host "Successfully deleted user account $UserReference from the organization." -ForegroundColor Green
+                    Write-Host "Successfully deleted user account $($UserReference)." -ForegroundColor Green
                 }
-
                 # User successfully deleted, store the result into $results
                 $DeleteResult = [PSCustomObject]@{
                     'Username' = $UserReference
@@ -147,7 +145,6 @@ function Remove-ADUserAccount {
                 $DeletionResults = $DeletionResults + $DeleteResult
             }
         }
-
     }
     # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
     $DeletionResults | Sort-Object -Property 'Deleted' -Descending | Format-Table -Autosize
