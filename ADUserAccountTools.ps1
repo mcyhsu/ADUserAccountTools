@@ -64,7 +64,7 @@ function New-BulkADUser {
         }
     }
     # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $CreationResults | Sort-Object -Property 'Status' -Descending | Format-Table -Autosize
+    $CreationResults
 }
 
 function Remove-BulkADUser {
@@ -147,5 +147,5 @@ function Remove-BulkADUser {
         }
     }
     # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $DeletionResults | Sort-Object -Property 'Deleted' -Descending | Format-Table -Autosize
+    $DeletionResults
 }
