@@ -1,3 +1,5 @@
+Add-Type -AssemblyName System.Windows.Forms
+
 function New-BulkADUser {
     $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
@@ -123,7 +125,7 @@ function Remove-BulkADUser {
             try { 
                 # Checks if the user exists before deleting the account
                 if(Get-LocalUser -Name $UserReference -ErrorAction Stop) {
-                    Remove-Localuser -name $UserReference -ErrorAction Stop
+                    Remove-ADuser -Identity $UserReference -ErrorAction Stop
                     Write-Host "Successfully deleted user account $($UserReference)." -ForegroundColor Green
                 }
                 # User successfully deleted, store the result into a variable
@@ -194,7 +196,7 @@ function Disable-BulkADUser {
         Write-Host 'Please run the Disable-BulkADUser function again if you still want to disable accounts.' -ForegroundColor Yellow
     }
 
-    # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
+    # If csv or txt imported successfully, will loop through each user entry and disable corresponding account
     if($ImportSuccess) {
         # Initialize an array that will hold the results
         $DisableResults = @()
@@ -210,7 +212,7 @@ function Disable-BulkADUser {
             try {
                 # Checks if the user account exists and is enabled before disabling the account
                 if($UserExists -and $IsEnabled) {
-                    Disable-Localuser -name $UserReference -ErrorAction Stop
+                    Disable-ADAccount -Identity $UserReference -ErrorAction Stop
                     Write-Host "Successfully disabled user account $($UserReference)." -ForegroundColor Green
                 }
                 else {
@@ -297,7 +299,7 @@ function Enable-BulkADUser {
         Write-Host 'Please run the Enable-BulkADUser function again if you still want to enable accounts.' -ForegroundColor Yellow
     }
 
-    # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
+    # If csv or txt imported successfully, will loop through each user entry and enable corresponding account
     if($ImportSuccess) {
         # Initialize an array that will hold the results
         $EnableResults = @()
@@ -313,7 +315,7 @@ function Enable-BulkADUser {
             try {
                 # Checks if the user account exists and is disabled before enabling the account
                 if($UserExists -and $IsEnabled -eq $false) {
-                    Enable-Localuser -name $UserReference -ErrorAction Stop
+                    Enable-ADAccount -Identity $UserReference -ErrorAction Stop
                     Write-Host "Successfully enabled user account $($UserReference)." -ForegroundColor Green
                 }
                 else {
