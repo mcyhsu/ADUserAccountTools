@@ -1,72 +1,128 @@
 Add-Type -AssemblyName System.Windows.Forms
 
+function New-SingleUser {
+    param(
+        $Employee
+    )
+    $CreationResults = @()
+    try {
+        $Password = ConvertTo-SecureString $employee.password -AsPlainText -Force
+        $FullName = $employee.Firstname + " " + $employee.LastName
+
+        # This variable will be used to sort users into their proper department OU
+        # Modify the path as needed, this is what works for my test environment
+        $OUPath = "OU=Users,OU="+ $employee.department + ",OU=USA,DC=Test,DC=local"
+
+        #The New-ADUser cmdlet below may need to be changed depending on what the headings are in your CSV file.
+        #You can also add more parameters to the cmdlet as needed, such as phone number, location, description, etc.
+        New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath -ErrorAction Stop
+
+        Write-Host "Successfully created an account for user $($employee.username)." -ForegroundColor Green
+
+        # Store success result as an object
+        $CreateResult = [PSCustomObject]@{
+            'Username' = $employee.username
+            'Status' = 'Created'
+        }
+        $CreationResults = $CreationResults + $CreateResult
+    }
+    catch {
+        Write-Host "Failed to create an account for user $($employee.username). " -ForegroundColor Red -NoNewline
+        Write-Host 'They may already exist or you may lack the permission to create an account.' -ForegroundColor Yellow
+
+        # Store failure result as an object
+        $CreateResult = [PSCustomObject]@{
+            'Username' = $employee.username
+            'Status' = 'Not created'
+        }
+        $CreationResults = $CreationResults + $CreateResult
+    }
+    $CreationResults
+}
+
 function New-BulkADUser {
-    $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]$LoadUsers
+    )
 
-    # Sets the file dialog starting point at C:\
-    $DialogBox.InitialDirectory = 'C:\'
-
-    # Filters which files will be displayed in the file dialog
-    $DialogBox.filter = 'csv files (*.csv)|*.csv'
-
-    $ImportSuccess = $true
-
-    Write-Host 'Please select the CSV file with the employee information and click on Open to begin creating their accounts.' -ForegroundColor Yellow
-
-    # ShowDialog() displays the file dialog and captures the result (OK, CANCEL).
-    if($DialogBox.ShowDialog() -eq 'OK') {
-        $NewEmployeeInfo = Import-Csv -path $DialogBox.FileName
-    }
-    else {
-        $ImportSuccess = $false
-        Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
-        Write-Host 'Please run the New-BulkADUser function again if you still want to create accounts.' -ForegroundColor Yellow
-    }
-
-    if ($ImportSuccess) {
-
-        # Initialize an empty array that will store the results of the operation
+    BEGIN {
+        $NewEmployeeInfo = @()
         $CreationResults = @()
+        [boolean]$WorkingWithObjects = $null
+        [boolean]$WorkingWithFilePath = $null
+    }
 
-        foreach($employee in $NewEmployeeInfo) {
+    PROCESS {
+        $ImportSuccess = $true
+        
+        # User provided a file path to a CSV file
+        if($LoadUsers -like "*.csv") {
+            $WorkingWithFilePath = $true
             try {
-                $Password = ConvertTo-SecureString $employee.password -AsPlainText -Force
-                $FullName = $employee.Firstname + " " + $employee.LastName
-
-                # This variable will be used to sort users into their proper department OU
-                # Modify the path as needed, this is what works for my test environment
-                $OUPath = "OU=Users,OU="+ $employee.department + ",OU=USA,DC=Test,DC=local"
-
-                <#
-                The New-ADUser cmdlet below may need to be changed depending on what the headings are in your CSV file.
-                You can also add more parameters to the cmdlet as needed, such as phone number, location, description, etc.
-                #>
-                New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath -ErrorAction Stop
-
-                Write-Host "Successfully created an account for user $($employee.username)." -ForegroundColor Green
-
-                # Store success result as an object
-                $CreateResult = [PSCustomObject]@{
-                    'Username' = $employee.username
-                    'Status' = 'Created'
-                }
-                $CreationResults = $CreationResults + $CreateResult
+                $NewEmployeeInfo = Import-Csv -path $LoadUsers
             }
             catch {
-                Write-Host "Failed to create an account for user $($employee.username). " -ForegroundColor Red -NoNewline
-                Write-Host 'They may already exist or you may lack the permission to create an account.' -ForegroundColor Yellow
-
-                # Store failure result as an object
-                $CreateResult = [PSCustomObject]@{
-                    'Username' = $employee.username
-                    'Status' = 'Not created'
-                }
-                $CreationResults = $CreationResults + $CreateResult
+                $ImportSuccess = $false
+                Write-Host 'Invalid file or file path selected. Please select a CSV file.' -ForegroundColor Red
             }
         }
+        # User provided an array of objects from Import-CSV. IMPORTANT: Only ONE object is pipelined at a time when an array is given as an argument.
+        elseif($LoadUsers) {          
+            # Unlike when a filepath is provided, where we can just Import-CSV and loop through it with foreach(), if an array of objects is provided
+            # (E.g. from Import-CSV), then all the code in the PROCESS block will run PER ARGUMENT (object). So if you have a foreach loop, the foreach 
+            # loop will run as many times as there are arguments. The PROCESS block itself is basically a foreach loop, so we don't need another loop!
+            $WorkingWithObjects = $true
+            #$LoadUsers
+        } 
+        else {
+            $WorkingWithFilePath = $true
+            $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+
+            # Sets the file dialog starting point at C:\
+            $DialogBox.InitialDirectory = 'C:\'
+
+            # Filters which files will be displayed in the file dialog
+            $DialogBox.filter = 'csv files (*.csv)|*.csv'
+
+            Write-Host 'Please select the CSV file with the employee information and click on Open to begin creating their accounts.' -ForegroundColor Yellow
+
+            # ShowDialog() displays the file dialog and captures the result (OK, CANCEL).
+            if($DialogBox.ShowDialog() -eq 'OK') {
+                $NewEmployeeInfo = Import-Csv -path $DialogBox.FileName
+            }
+            else {
+                $ImportSuccess = $false
+                Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
+                Write-Host 'Please run the New-BulkADUser function again if you still want to create accounts.' -ForegroundColor Yellow
+            }
+        }
+
+        if ($ImportSuccess) {
+            # This is when a user gives a filepath to their CSV, we run Import-CSV and loop through it
+            if($WorkingWithFilePath) {
+                foreach($employee in $NewEmployeeInfo) {
+                    $AccountStatus = New-SingleUser -Employee $employee
+                    $CreationResults = $CreationResults + $AccountStatus
+                }
+            }
+            # This is when a user provides us an array of objects - each object in the array is passed ONE AT A TIME; i.e. the cmdlet is called on each object individually
+            # The PROCESS block runs each time the cmdlet is called on an object, acting as a foreach loop, so we DON'T need another loop in this case
+            elseif($WorkingWithObjects) {
+                $AccountStatus = New-SingleUser -Employee $LoadUsers
+                $CreationResults = $CreationResults + $AccountStatus
+            }
+
+        }
+
     }
-    # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $CreationResults
+
+    END {
+        # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
+        $CreationResults
+    }
+
+
 }
 
 function Remove-BulkADUser {
