@@ -9,22 +9,40 @@ function New-Users {
         $Password = ConvertTo-SecureString $employee.password -AsPlainText -Force
         $FullName = $employee.Firstname + " " + $employee.LastName
 
-        # This variable will be used to sort users into their proper department OU
+        # This variable will be used to sort users into their proper department OU in Active Directory with the -Path parameter
         # Modify the path as needed, this is what works for my test environment
         $OUPath = "OU=Users,OU="+ $employee.department + ",OU=USA,DC=Test,DC=local"
 
-        #The New-ADUser cmdlet below may need to be changed depending on what the headings are in your CSV file.
-        #You can also add more parameters to the cmdlet as needed, such as phone number, location, description, etc.
-        New-AdUser -GivenName $employee.FirstName -Surname $employee.LastName -Name $FullName -DisplayName $FullName -SamAccountName $employee.Username -EmailAddress $employee.email -AccountPassword $Password -ChangePasswordAtLogon $true -Department $employee.Department -Title $employee.jobtitle -Enabled $true -Path $OUPath -ErrorAction Stop
-
-        Write-Host "Successfully created an account for user $($employee.username)." -ForegroundColor Green
-
-        # Store success result as an object
-        $CreateResult = [PSCustomObject]@{
-            'Username' = $employee.username
-            'Status' = 'Created'
+        ### CHANGE THE ATTRIBUTES BELOW BASED ON YOUR NEEDS ###
+        # See the New-ADUser documentation for the full list of parameters: https://learn.microsoft.com/en-us/powershell/module/activedirectory/new-aduser?view=windowsserver2025-ps        
+        $UserAttributes = @{
+            'GivenName' = $FullName
+            'Name'= $employee.FirstName 
+            'Surname' = $employee.LastName 
+            'DisplayName' = $FullName 
+            'SamAccountName'= $employee.Username 
+            'EmailAddress' = $employee.email 
+            'AccountPassword'= $Password 
+            'ChangePasswordAtLogon'= $true 
+            'Department' = $employee.Department 
+            'Title' = $employee.jobtitle 
+            'Enabled' = $true 
+            'Path' = $OUPath
         }
-        $CreationResults = $CreationResults + $CreateResult
+        New-AdUser @UserAttributes -ErrorAction Stop
+
+        # If user account was successfully created
+        if(Get-ADUser -Identity $employee.Username) {
+            Write-Host "Successfully created an account for user $($employee.username)." -ForegroundColor Green
+
+            # Store success result as an object
+            $CreateResult = [PSCustomObject]@{
+                'Username' = $employee.username
+                'Status' = 'Created'
+            }
+            $CreationResults = $CreationResults + $CreateResult  
+        }
+
     }
     catch {
         Write-Host "Failed to create an account for user $($employee.username). " -ForegroundColor Red -NoNewline
@@ -56,7 +74,7 @@ function Remove-Users {
         try { 
             # Checks if the user exists before deleting the account
             if(Get-ADUser -Identity $UserReference -ErrorAction Stop) {
-                Remove-ADuser -Identity $UserReference -ErrorAction Stop
+                Remove-ADuser -Identity $UserReference -ErrorAction Stop -Confirm:$False
                 Write-Host "Successfully deleted user account $($UserReference)." -ForegroundColor Green
             }
             # User successfully deleted, store the result into a variable
@@ -77,10 +95,8 @@ function Remove-Users {
             }
             $DeletionResults = $DeletionResults + $DeleteResult
         }
-
     }
     $DeletionResults
-
 }
 
 function Disable-Users {
@@ -141,6 +157,66 @@ function Disable-Users {
         }
     }
     $DisableResults
+}
+
+function Enable-Users {
+    param(
+        $AccountsToEnable,
+        $CsvOrTxt
+    )
+
+    # Initialize an array that will hold the results
+    $EnableResults = @()
+        
+    foreach($employee in $AccountsToEnable) {
+        # Determines the proper way to reference the Username depending on whether a .txt or .csv file was imported
+        $UserReference = if($CsvOrTxt -eq 'txt') { $employee } else { $employee.username }
+
+        # Determine next steps based on if 1) the user exists, and 2) if they are enabled/disabled
+        $UserExists = if(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue) { $true } else { $false }
+        $IsEnabled = if($(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue).Enabled -eq $true) { $true } else { $false }
+
+        try {
+            # Checks if the user account exists and is disabled before enabling the account
+            if($UserExists -and $IsEnabled -eq $false) {
+                Enable-ADAccount -Identity $UserReference -ErrorAction Stop
+                Write-Host "Successfully enabled user account $($UserReference)." -ForegroundColor Green
+            }
+            else {
+                # Force exit to the catch block, user probably doesn't exist
+                throw
+            }
+            # User successfully enabled, store the result as an object
+            $EnableResult = [PSCustomObject]@{
+                'Username' = $UserReference
+                'Status' = 'Enabled'
+            }
+            $EnableResults = $EnableResults + $EnableResult
+        }
+        catch {
+            $Status = ''
+
+            if($UserExists -eq $false) {
+                Write-Host "Failed to enable user $($UserReference). " -ForegroundColor Red -NoNewline
+                Write-Host 'The user account may not exist or you lack the permission to enable this account.' -ForegroundColor Yellow
+                $Status = "Not enabled"
+            }
+
+            # If the user doesn't exist, then the user cannot already be enabled
+            if($IsEnabled) {
+                Write-Host "User account $UserReference is already enabled." -ForegroundColor Green
+                $Status = 'Enabled'
+            }
+                
+            # User doesn't exist or failed to be enabled, store the result into a variable
+            $EnableResult = [PSCustomObject]@{
+                'Username' = $UserReference
+                'Status' = $Status
+            }
+            $EnableResults = $EnableResults + $EnableResult
+        }
+    }
+    $EnableResults
 }
 
 function New-BulkADUser {
@@ -223,8 +299,6 @@ function New-BulkADUser {
         # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
         $CreationResults
     }
-
-
 }
 
 function Remove-BulkADUser {
@@ -413,103 +487,92 @@ function Disable-BulkADUser {
 }
 
 function Enable-BulkADUser {
-    $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUsers,
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true)]$LoadedFromFile
+    )
 
-    # Sets the file dialog starting point at C:\
-    $DialogBox.InitialDirectory = 'C:\'
-
-    # Filters which files will be displayed in the file dialog
-    $DialogBox.filter = 'All files (*.*)|*.*|csv files (*.csv)|*.csv|txt files (*.txt)|*.txt'
-
-    $ImportSuccess = $true
-    $AccountsToEnable = ''
-    $CsvOrTxt = ''
-
-    Write-Host 'Please select the CSV or TXT file with the usernames of the accounts you want to enable and click on Open' -ForegroundColor Yellow
-
-    # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
-    if($DialogBox.ShowDialog() -eq 'OK') {
-
-        # Stores path to file in $FilePath
-        $FilePath = $DialogBox.FileName
-
-        # Checks if the file is a .csv or .txt file, stores the contents to a variable
-        if($FilePath -like '*.csv'){
-            $CsvOrTxt = 'csv'
-            $AccountsToEnable = Import-Csv -path $FilePath
-        }
-        elseif($FilePath -like '*.txt'){
-            $CsvOrTxt = 'txt'
-            $AccountsToEnable = Get-Content -path $FilePath
-        }
-        else {
-            # This block runs when the user loads a file other than a .csv or .txt file
-            'Please import a CSV or TXT file.'
-            $ImportSuccess = $false
-        }
-    }
-    else {
-        # What happens if the user presses CANCEL in the file dialog
-        $ImportSuccess = $false
-
-        Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
-        Write-Host 'Please run the Enable-BulkADUser function again if you still want to enable accounts.' -ForegroundColor Yellow
-    }
-
-    # If csv or txt imported successfully, will loop through each user entry and enable corresponding account
-    if($ImportSuccess) {
-        # Initialize an array that will hold the results
+    BEGIN {
+        $ImportSuccess = $true
+        $AccountsToEnable = ''
+        $CsvOrTxt = ''
         $EnableResults = @()
+    }
+
+    PROCESS {
+        # If user calls Enable-BulkADUser with no values provided, open the file dialog to load the CSV or TXT file
+        if($LoadUsers -eq $null -and $LoadedFromFile -eq $null) {
         
-        foreach($employee in $AccountsToEnable) {
-            # Determines the proper way to reference the Username depending on whether a .txt or .csv file was imported
-            $UserReference = if($CsvOrTxt -eq 'txt') { $employee } else { $employee.username }
+            $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
-            # Determine next steps based on if 1) the user exists, and 2) if they are enabled/disabled
-            $UserExists = if(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue) { $true } else { $false }
-            $IsEnabled = if($(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue).Enabled -eq $true) { $true } else { $false }
+            # Sets the file dialog starting point at C:\
+            $DialogBox.InitialDirectory = 'C:\'
 
-            try {
-                # Checks if the user account exists and is disabled before enabling the account
-                if($UserExists -and $IsEnabled -eq $false) {
-                    Enable-ADAccount -Identity $UserReference -ErrorAction Stop
-                    Write-Host "Successfully enabled user account $($UserReference)." -ForegroundColor Green
+            # Filters which files will be displayed in the file dialog
+            $DialogBox.filter = 'All files (*.*)|*.*|csv files (*.csv)|*.csv|txt files (*.txt)|*.txt'
+
+            Write-Host 'Please select the CSV or TXT file with the usernames of the accounts you want to enable and click on Open' -ForegroundColor Yellow
+
+            # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
+            if($DialogBox.ShowDialog() -eq 'OK') {
+
+                # Stores path to file in $FilePath
+                $FilePath = $DialogBox.FileName
+
+                # Checks if the file is a .csv or .txt file, stores the contents to a variable
+                if($FilePath -like '*.csv'){
+                    $CsvOrTxt = 'csv'
+                    $AccountsToEnable = Import-Csv -path $FilePath
+                }
+                elseif($FilePath -like '*.txt'){
+                    $CsvOrTxt = 'txt'
+                    $AccountsToEnable = Get-Content -path $FilePath
                 }
                 else {
-                    # Force exit to the catch block, user probably doesn't exist
-                    throw
+                    # This block runs when the user loads a file other than a .csv or .txt file
+                    'Please import a CSV or TXT file.'
+                    $ImportSuccess = $false
                 }
-                # User successfully enabled, store the result as an object
-                $EnableResult = [PSCustomObject]@{
-                    'Username' = $UserReference
-                    'Status' = 'Enabled'
-                }
-                $EnableResults = $EnableResults + $EnableResult
             }
-            catch {
-                $Status = ''
+            else {
+                # What happens if the user presses CANCEL in the file dialog
+                $ImportSuccess = $false
 
-                if($UserExists -eq $false) {
-                    Write-Host "Failed to enable user $($UserReference). " -ForegroundColor Red -NoNewline
-                    Write-Host 'The user account may not exist or you lack the permission to enable this account.' -ForegroundColor Yellow
-                    $Status = "Not enabled"
-                }
+                Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
+                Write-Host 'Please run the Enable-BulkADUser function again if you still want to enable accounts.' -ForegroundColor Yellow
+            }
 
-                # If the user doesn't exist, then the user cannot already be enabled
-                if($IsEnabled) {
-                    Write-Host "User account $UserReference is already enabled." -ForegroundColor Green
-                    $Status = 'Enabled'
-                }
-                
-                # User doesn't exist or failed to be enabled, store the result into a variable
-                $EnableResult = [PSCustomObject]@{
-                    'Username' = $UserReference
-                    'Status' = $Status
-                }
-                $EnableResults = $EnableResults + $EnableResult
+            # If csv or txt imported successfully, will loop through each user entry and enable corresponding account
+            if($ImportSuccess) {
+                $EnableResults = Enable-Users -AccountsToEnable $AccountsToEnable -CsvOrTxt $CsvOrTxt
             }
         }
+        # If a CSV file was loaded by property name (E.g. Enable-BulkADUser -LoadUsers 'C:\UserData.csv'
+        elseif($LoadUsers -like "*.csv"){
+            $AccountsToEnable = Import-Csv -Path $LoadUsers
+            $EnableResults = Enable-Users -AccountsToEnable $AccountsToEnable -CsvOrTxt 'csv'
+        }
+        elseif($LoadUsers -like "*.txt"){
+            $AccountsToEnable = Get-Content -Path $LoadUsers
+            $EnableResults = Enable-Users -AccountsToEnable $AccountsToEnable -CsvOrTxt 'txt'
+        }
+        # If a value was pipelined like so: Import-Csv -path 'C:\UserData.csv' | Enable-BulkADUsers (Each value is passed to the cmdlet ONE AT A TIME; you are not given an array)
+        elseif($LoadedFromFile.GetType().Name -eq 'PSCustomObject'){
+            $AccountStatus = Enable-Users -AccountsToEnable $LoadedFromFile -CsvOrTxt 'csv'
+            $EnableResults = $EnableResults + $AccountStatus
+        }
+        elseif($LoadedFromFile.GetType().Name -eq 'String'){
+            $AccountStatus = Enable-Users -AccountsToEnable $LoadedFromFile -CsvOrTxt 'txt'
+            $EnableResults = $EnableResults + $AccountStatus 
+        }
+
+    } # END OF PROCESS
+
+    END {
+        # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
+        $EnableResults
     }
-    # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $EnableResults
+
+
 }
