@@ -181,28 +181,8 @@ function Remove-BulkADUser {
     }
 
     PROCESS {
-        # If a txt file was loaded by property name
-        if($LoadUsers -like "*.txt") {
-            $AccountsToDelete = Get-Content -Path $LoadUsers
-            $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrTxt 'txt'
-        }
-        # If a csv file was loaded loaded by property name
-        elseif($LoadUsers -like "*.csv") {
-            $AccountsToDelete = Import-Csv -Path $LoadUsers
-            $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrTxt 'csv'
-        }
-        # If a string was passed through the pipeline (e.g. from Get-Content)
-        elseif($LoadedFromFile.GetType().Name -eq 'string'){
-            $AccountStatus = Remove-SingleUser -AccountsToDelete $LoadedFromFile -CsvOrTxt 'txt'
-            $DeletionResults = $DeletionResults + $AccountStatus
-        }
-        # If an object was passed through the pipeline (e.g. from Import-Csv)
-        elseif($LoadedFromFile.GetType().Name -eq 'PSCustomObject'){
-            $AccountStatus = Remove-SingleUser -AccountsToDelete $LoadedFromFile -CsvOrTxt 'csv'
-            $DeletionResults = $DeletionResults + $AccountStatus
-        }
-        # Otherwise, run the file dialog 
-        else {
+        # If no values were passed through the pipeline, run the file dialog
+        if($LoadUsers -eq $null -and $LoadedFromFile -eq $null) {
             $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
             # Sets the file dialog starting point at C:\
@@ -244,9 +224,30 @@ function Remove-BulkADUser {
 
             # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
             if($ImportSuccess) {
-                $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrText $CsvOrTxt
+                $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrTxt $CsvOrTxt
             }
-            
+        }
+
+
+        # If a txt file was loaded by property name
+        elseif($LoadUsers -like "*.txt") {
+            $AccountsToDelete = Get-Content -Path $LoadUsers
+            $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrTxt 'txt'
+        }
+        # If a csv file was loaded loaded by property name
+        elseif($LoadUsers -like "*.csv") {
+            $AccountsToDelete = Import-Csv -Path $LoadUsers
+            $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrTxt 'csv'
+        }
+        # If a string was passed through the pipeline (e.g. from Get-Content)
+        elseif($LoadedFromFile.GetType().Name -eq 'string'){
+            $AccountStatus = Remove-SingleUser -AccountsToDelete $LoadedFromFile -CsvOrTxt 'txt'
+            $DeletionResults = $DeletionResults + $AccountStatus
+        }
+        # If an object was passed through the pipeline (e.g. from Import-Csv)
+        elseif($LoadedFromFile.GetType().Name -eq 'PSCustomObject'){
+            $AccountStatus = Remove-SingleUser -AccountsToDelete $LoadedFromFile -CsvOrTxt 'csv'
+            $DeletionResults = $DeletionResults + $AccountStatus
         }
 
     } # End of PROCESS
