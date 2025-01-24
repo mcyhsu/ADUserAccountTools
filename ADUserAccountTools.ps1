@@ -40,6 +40,49 @@ function New-SingleUser {
     $CreationResults
 }
 
+function Remove-SingleUser {
+    Param (
+        $AccountsToDelete,
+        $CsvOrTxt
+    )
+
+    # Initialize an array that will hold the results
+    $DeletionResults = @()
+        
+    foreach($employee in $AccountsToDelete) {
+        # Determines the proper way to reference the Username depending on whether a .txt or .csv file was imported
+        $UserReference = if($CsvOrTxt -eq 'txt') { $employee } else { $employee.username }
+
+        try { 
+            # Checks if the user exists before deleting the account
+            if(Get-ADUser -Identity $UserReference -ErrorAction Stop) {
+                Remove-ADuser -Identity $UserReference -ErrorAction Stop
+                Write-Host "Successfully deleted user account $($UserReference)." -ForegroundColor Green
+            }
+            # User successfully deleted, store the result into a variable
+            $DeleteResult = [PSCustomObject]@{
+                'Username' = $UserReference
+                'Status' = 'Deleted'
+            }
+            $DeletionResults = $DeletionResults + $DeleteResult
+        }
+        catch {
+            Write-Host "Failed to delete user $($UserReference). " -ForegroundColor Red -NoNewline
+            Write-Host 'They may not exist or you lack the permission to delete this account.' -ForegroundColor Yellow
+
+            # User doesn't exist, store the result into a variable
+            $DeleteResult = [PSCustomObject]@{
+                'Username' = $UserReference
+                'Status' = "Doesn't exist"
+            }
+            $DeletionResults = $DeletionResults + $DeleteResult
+        }
+
+    }
+    $DeletionResults
+
+}
+
 function New-BulkADUser {
     [CmdletBinding()]
     param(
@@ -109,8 +152,7 @@ function New-BulkADUser {
             # This is when a user provides us an array of objects - each object in the array is passed ONE AT A TIME; i.e. the cmdlet is called on each object individually
             # The PROCESS block runs each time the cmdlet is called on an object, acting as a foreach loop, so we DON'T need another loop in this case
             elseif($WorkingWithObjects) {
-                $AccountStatus = New-SingleUser -Employee $LoadUsers
-                $CreationResults = $CreationResults + $AccountStatus
+                $CreationResults = New-SingleUser -Employee $LoadUsers
             }
 
         }
@@ -126,86 +168,94 @@ function New-BulkADUser {
 }
 
 function Remove-BulkADUser {
-    $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
-
-    # Sets the file dialog starting point at C:\
-    $DialogBox.InitialDirectory = 'C:\'
-
-    # Filters which files will be displayed in the file dialog
-    $DialogBox.filter = 'All files (*.*)|*.*|csv files (*.csv)|*.csv|txt files (*.txt)|*.txt'
-
-    $ImportSuccess = $true
-    $AccountsToDelete = ''
-    $CsvOrTxt = ''
-
-    Write-Host 'Please select the CSV or TXT file with the usernames of the accounts you want to delete and click on Open' -ForegroundColor Yellow
-
-    # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
-    if($DialogBox.ShowDialog() -eq 'OK') {
-
-        # Stores path to file in $FilePath
-        $FilePath = $DialogBox.FileName
-
-        # Checks if the file is a .csv or .txt file, stores the contents to a variable
-        if($FilePath -like '*.csv'){
-            $CsvOrTxt = 'csv'
-            $AccountsToDelete = Import-Csv -path $FilePath
-        }
-        elseif($FilePath -like '*.txt'){
-            $CsvOrTxt = 'txt'
-            $AccountsToDelete = Get-Content -path $FilePath
-        }
-        else {
-            # This block runs when the user loads a file other than a .csv or .txt file
-            'Please import a CSV or TXT file.'
-            $ImportSuccess = $false
-        }
-    }
-    else {
-        # What happens if the user presses CANCEL in the file dialog
-        $ImportSuccess = $false
-
-        Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
-        Write-Host 'Please run the Remove-BulkADUser function again if you still want to delete accounts.' -ForegroundColor Yellow
-    }
-
-    # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
-    if($ImportSuccess) {
-        # Initialize an array that will hold the results
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUsers,
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true)]$LoadedFromFile
+    )
+    BEGIN {
+        $ImportSuccess = $true
+        $AccountsToDelete = ''
+        $CsvOrTxt = ''
         $DeletionResults = @()
-        
-        foreach($employee in $AccountsToDelete) {
-            # Determines the proper way to reference the Username depending on whether a .txt or .csv file was imported
-            $UserReference = if($CsvOrTxt -eq 'txt') { $employee } else { $employee.username }
-
-            try { 
-                # Checks if the user exists before deleting the account
-                if(Get-LocalUser -Name $UserReference -ErrorAction Stop) {
-                    Remove-ADuser -Identity $UserReference -ErrorAction Stop
-                    Write-Host "Successfully deleted user account $($UserReference)." -ForegroundColor Green
-                }
-                # User successfully deleted, store the result into a variable
-                $DeleteResult = [PSCustomObject]@{
-                    'Username' = $UserReference
-                    'Status' = 'Deleted'
-                }
-                $DeletionResults = $DeletionResults + $DeleteResult
-            }
-            catch {
-                Write-Host "Failed to delete user $($UserReference). " -ForegroundColor Red -NoNewline
-                Write-Host 'They may not exist or you lack the permission to delete this account.' -ForegroundColor Yellow
-
-                # User doesn't exist, store the result into a variable
-                $DeleteResult = [PSCustomObject]@{
-                    'Username' = $UserReference
-                    'Status' = "Doesn't exist"
-                }
-                $DeletionResults = $DeletionResults + $DeleteResult
-            }
-        }
     }
-    # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $DeletionResults
+
+    PROCESS {
+        # If a txt file was loaded by property name
+        if($LoadUsers -like "*.txt") {
+            $AccountsToDelete = Get-Content -Path $LoadUsers
+            $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrTxt 'txt'
+        }
+        # If a csv file was loaded loaded by property name
+        elseif($LoadUsers -like "*.csv") {
+            $AccountsToDelete = Import-Csv -Path $LoadUsers
+            $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrTxt 'csv'
+        }
+        # If a string was passed through the pipeline (e.g. from Get-Content)
+        elseif($LoadedFromFile.GetType().Name -eq 'string'){
+            $AccountStatus = Remove-SingleUser -AccountsToDelete $LoadedFromFile -CsvOrTxt 'txt'
+            $DeletionResults = $DeletionResults + $AccountStatus
+        }
+        # If an object was passed through the pipeline (e.g. from Import-Csv)
+        elseif($LoadedFromFile.GetType().Name -eq 'PSCustomObject'){
+            $AccountStatus = Remove-SingleUser -AccountsToDelete $LoadedFromFile -CsvOrTxt 'csv'
+            $DeletionResults = $DeletionResults + $AccountStatus
+        }
+        # Otherwise, run the file dialog 
+        else {
+            $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+
+            # Sets the file dialog starting point at C:\
+            $DialogBox.InitialDirectory = 'C:\'
+
+            # Filters which files will be displayed in the file dialog
+            $DialogBox.filter = 'All files (*.*)|*.*|csv files (*.csv)|*.csv|txt files (*.txt)|*.txt'
+
+            Write-Host 'Please select the CSV or TXT file with the usernames of the accounts you want to delete and click on Open' -ForegroundColor Yellow
+
+            # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
+            if($DialogBox.ShowDialog() -eq 'OK') {
+
+                # Stores path to file in $FilePath
+                $FilePath = $DialogBox.FileName
+
+                # Checks if the file is a .csv or .txt file, stores the contents to a variable
+                if($FilePath -like '*.csv'){
+                    $CsvOrTxt = 'csv'
+                    $AccountsToDelete = Import-Csv -path $FilePath
+                }
+                elseif($FilePath -like '*.txt'){
+                    $CsvOrTxt = 'txt'
+                    $AccountsToDelete = Get-Content -path $FilePath
+                }
+                else {
+                    # This block runs when the user loads a file other than a .csv or .txt file
+                    'Please import a CSV or TXT file.'
+                    $ImportSuccess = $false
+                }
+            }
+            else {
+                # What happens if the user presses CANCEL in the file dialog
+                $ImportSuccess = $false
+
+                Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
+                Write-Host 'Please run the Remove-BulkADUser function again if you still want to delete accounts.' -ForegroundColor Yellow
+            }
+
+            # If csv or txt imported successfully, will loop through each user entry and delete corresponding account
+            if($ImportSuccess) {
+                $DeletionResults = Remove-SingleUser -AccountsToDelete $AccountsToDelete -CsvOrText $CsvOrTxt
+            }
+            
+        }
+
+    } # End of PROCESS
+
+    END {
+        # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
+        $DeletionResults
+    }
+    
 }
 
 function Disable-BulkADUser {
