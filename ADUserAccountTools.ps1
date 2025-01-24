@@ -83,6 +83,67 @@ function Remove-Users {
 
 }
 
+function Disable-Users {
+    param(
+        $AccountsToDisable,
+        $CsvOrTxt
+    )
+    
+     # Initialize an array that will hold the results
+    $DisableResults = @()
+        
+    foreach($employee in $AccountsToDisable) {
+        # Determines the proper way to reference the Username depending on whether a .txt or .csv file was imported
+        $UserReference = if($CsvOrTxt -eq 'txt') { $employee } else { $employee.username }
+
+        try {
+            # Determine next steps based on if 1) the user exists, and 2) if they are enabled/disabled
+            $UserExists = if(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue) { $true } else { $false }
+            $IsEnabled = if($(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue).Enabled -eq $true) { $true } else { $false }
+
+            # Checks if the user account exists and is enabled before disabling the account
+            if($UserExists -and $IsEnabled) {
+                Disable-ADAccount -Identity $UserReference -ErrorAction Stop
+                Write-Host "Successfully disabled user account $($UserReference)." -ForegroundColor Green
+            }
+            else {
+                # Force exit to the catch block, user probably doesn't exist
+                throw
+            }
+            # User successfully disabled, store the result into a variable
+            $DisableResult = [PSCustomObject]@{
+                'Username' = $UserReference
+                'Status' = 'Disabled'
+            }
+            $DisableResults = $DisableResults + $DisableResult
+        }
+        catch {
+            $Status = ''
+
+            # If there was an error in the previous step, i.e. the user doesn't exist or the user lacks permission, then display this warning message
+            if($UserExists -eq $false) {
+                Write-Host "Failed to disable user $($UserReference). " -ForegroundColor Red -NoNewline
+                Write-Host 'The user account may not exist or you lack the permission to disable this account.' -ForegroundColor Yellow
+                $Status = "Disabled"
+            }
+
+            # Specifying that the account exists but is disabled prevents both log messages ("Account doesn't exist", "Account is already disabled") from displaying at the same time.
+            if($IsEnabled -eq $false -and $UserExists) {
+                Write-Host "User account $UserReference is already disabled." -ForegroundColor Green
+                $Status = 'Disabled'
+            }
+
+            # User doesn't exist or failed to be disabled, store the result as an object
+            $DisableResult = [PSCustomObject]@{
+                'Username' = $UserReference
+                'Status' = $Status
+            }
+            $DisableResults = $DisableResults + $DisableResult
+        }
+    }
+    $DisableResults
+}
+
 function New-BulkADUser {
     [CmdletBinding()]
     param(
@@ -228,7 +289,6 @@ function Remove-BulkADUser {
             }
         }
 
-
         # If a txt file was loaded by property name
         elseif($LoadUsers -like "*.txt") {
             $AccountsToDelete = Get-Content -Path $LoadUsers
@@ -242,11 +302,13 @@ function Remove-BulkADUser {
         # If a string was passed through the pipeline (e.g. from Get-Content)
         elseif($LoadedFromFile.GetType().Name -eq 'string'){
             $AccountStatus = Remove-Users -AccountsToDelete $LoadedFromFile -CsvOrTxt 'txt'
+            $AccountStatus
             $DeletionResults = $DeletionResults + $AccountStatus
         }
         # If an object was passed through the pipeline (e.g. from Import-Csv)
         elseif($LoadedFromFile.GetType().Name -eq 'PSCustomObject'){
             $AccountStatus = Remove-Users -AccountsToDelete $LoadedFromFile -CsvOrTxt 'csv'
+            $AccountStatus
             $DeletionResults = $DeletionResults + $AccountStatus
         }
 
@@ -260,106 +322,95 @@ function Remove-BulkADUser {
 }
 
 function Disable-BulkADUser {
-    $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUsers,
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true)]$LoadedFromFile
+    )
 
-    # Sets the file dialog starting point at C:\
-    $DialogBox.InitialDirectory = 'C:\'
-
-    # Filters which files will be displayed in the file dialog
-    $DialogBox.filter = 'All files (*.*)|*.*|csv files (*.csv)|*.csv|txt files (*.txt)|*.txt'
-
-    $ImportSuccess = $true
-    $AccountsToDisable = ''
-    $CsvOrTxt = ''
-
-    Write-Host 'Please select the CSV or TXT file with the usernames of the accounts you want to disable and click on Open' -ForegroundColor Yellow
-
-    # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
-    if($DialogBox.ShowDialog() -eq 'OK') {
-
-        # Stores path to file in $FilePath
-        $FilePath = $DialogBox.FileName
-
-        # Checks if the file is a .csv or .txt file, stores the contents to a variable
-        if($FilePath -like '*.csv'){
-            $CsvOrTxt = 'csv'
-            $AccountsToDisable = Import-Csv -path $FilePath
-        }
-        elseif($FilePath -like '*.txt'){
-            $CsvOrTxt = 'txt'
-            $AccountsToDisable = Get-Content -path $FilePath
-        }
-        else {
-            # This block runs when the user loads a file other than a .csv or .txt file
-            'Please import a CSV or TXT file.'
-            $ImportSuccess = $false
-        }
-    }
-    else {
-        # What happens if the user presses CANCEL in the file dialog
-        $ImportSuccess = $false
-
-        Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
-        Write-Host 'Please run the Disable-BulkADUser function again if you still want to disable accounts.' -ForegroundColor Yellow
-    }
-
-    # If csv or txt imported successfully, will loop through each user entry and disable corresponding account
-    if($ImportSuccess) {
-        # Initialize an array that will hold the results
+    BEGIN {
+        $ImportSuccess = $true
+        $AccountsToDisable = $null
+        $CsvOrTxt = ''
         $DisableResults = @()
-        
-        foreach($employee in $AccountsToDisable) {
-            # Determines the proper way to reference the Username depending on whether a .txt or .csv file was imported
-            $UserReference = if($CsvOrTxt -eq 'txt') { $employee } else { $employee.username }
+    }
 
-            # Determine next steps based on if 1) the user exists, and 2) if they are enabled/disabled
-            $UserExists = if(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue) { $true } else { $false }
-            $IsEnabled = if($(Get-LocalUser -Name $UserReference -ErrorAction SilentlyContinue).Enabled -eq $true) { $true } else { $false }
+    PROCESS {
+        # If no values are pipelined, open file dialog
+        if($LoadUsers -eq $null -and $LoadedFromFile -eq $null) {
 
-            try {
-                # Checks if the user account exists and is enabled before disabling the account
-                if($UserExists -and $IsEnabled) {
-                    Disable-ADAccount -Identity $UserReference -ErrorAction Stop
-                    Write-Host "Successfully disabled user account $($UserReference)." -ForegroundColor Green
+            $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+
+            # Sets the file dialog starting point at C:\
+            $DialogBox.InitialDirectory = 'C:\'
+
+            # Filters which files will be displayed in the file dialog
+            $DialogBox.filter = 'All files (*.*)|*.*|csv files (*.csv)|*.csv|txt files (*.txt)|*.txt'
+
+            Write-Host 'Please select the CSV or TXT file with the usernames of the accounts you want to disable and click on Open' -ForegroundColor Yellow
+
+            # ShowDialog() displays the file dialog and captures the result (OK, CANCEL). 
+            if($DialogBox.ShowDialog() -eq 'OK') {
+
+                # Stores path to file in $FilePath
+                $FilePath = $DialogBox.FileName
+
+                # Checks if the file is a .csv or .txt file, stores the contents to a variable
+                if($FilePath -like '*.csv'){
+                    $CsvOrTxt = 'csv'
+                    $AccountsToDisable = Import-Csv -path $FilePath
+                }
+                elseif($FilePath -like '*.txt'){
+                    $CsvOrTxt = 'txt'
+                    $AccountsToDisable = Get-Content -path $FilePath
                 }
                 else {
-                    # Force exit to the catch block, user probably doesn't exist
-                    throw
+                    # This block runs when the user loads a file other than a .csv or .txt file
+                    'Please import a CSV or TXT file.'
+                    $ImportSuccess = $false
                 }
-                # User successfully disabled, store the result into a variable
-                $DisableResult = [PSCustomObject]@{
-                    'Username' = $UserReference
-                    'Status' = 'Disabled'
-                }
-                $DisableResults = $DisableResults + $DisableResult
             }
-            catch {
-                $Status = ''
+            else {
+                # What happens if the user presses CANCEL in the file dialog
+                $ImportSuccess = $false
 
-                # If there was an error in the previous step, i.e. the user doesn't exist or the user lacks permission, then display this warning message
-                if($UserExists -eq $false) {
-                    Write-Host "Failed to disable user $($UserReference). " -ForegroundColor Red -NoNewline
-                    Write-Host 'The user account may not exist or you lack the permission to disable this account.' -ForegroundColor Yellow
-                    $Status = "Disabled"
-                }
+                Write-Host 'Operation cancelled. ' -ForegroundColor Red -NoNewline
+                Write-Host 'Please run the Disable-BulkADUser function again if you still want to disable accounts.' -ForegroundColor Yellow
+            }
 
-                # Specifying that the account exists but is disabled prevents both log messages ("Account doesn't exist", "Account is already disabled") from displaying at the same time.
-                if($IsEnabled -eq $false -and $UserExists) {
-                    Write-Host "User account $UserReference is already disabled." -ForegroundColor Green
-                    $Status = 'Disabled'
-                }
-
-                # User doesn't exist or failed to be disabled, store the result as an object
-                $DisableResult = [PSCustomObject]@{
-                    'Username' = $UserReference
-                    'Status' = $Status
-                }
-                $DisableResults = $DisableResults + $DisableResult
+            # If csv or txt imported successfully, will loop through each user entry and disable corresponding account
+            if($ImportSuccess) {
+                $DisableResults = Disable-Users -AccountsToDisable $AccountsToDisable -CsvOrTxt $CsvOrTxt
             }
         }
+        # If a csv file is loaded by property name (E.g. Disable-BulkADUser -LoadUsers 'C:\Users.csv')
+        elseif($LoadUsers -like "*csv") {
+            $AccountsToDisable = Import-Csv -Path $LoadUsers
+            $DisableResults = Disable-Users -AccountsToDisable $AccountsToDisable -CsvOrTxt 'csv'
+        }
+        # If a txt file is loaded by property name
+        elseif($LoadUsers -like "*txt") {
+            $AccountsToDisable = Get-Content -Path $LoadUsers
+            $DisableResults = Disable-Users -AccountsToDisable $AccountsToDisable -CsvOrTxt 'txt'
+        }
+        # If a txt file is loaded by pipeline (E.g. Get-Content -path 'C:\Users.txt' | Disable-BulkADUser), it will be one string at a time
+        elseif($LoadedFromFile.GetType().Name -eq 'string') {
+            $AccountStatus = Disable-Users -AccountsToDisable $LoadedFromFile -CsvOrTxt 'txt'
+            $DisableResults = $DisableResults + $AccountStatus
+        }
+        # If a csv file is loaded by pipeline (E.g. Import-Csv -path 'C:\Users.txt' | Disable-BulkADUser), it will be one object at a time
+        elseif($LoadedFromFile.GetType().Name -eq 'PSCustomObject') {
+            $AccountStatus = Disable-Users -AccountsToDisable $LoadedFromFile -CsvOrTxt 'csv'
+            $DisableResults = $DisableResults + $AccountStatus
+        }
+
+    } # End of PROCESS
+
+    END {
+        # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
+        $DisableResults
     }
-    # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
-    $DisableResults
+
 }
 
 function Enable-BulkADUser {
