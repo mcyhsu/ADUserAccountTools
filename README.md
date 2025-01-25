@@ -22,13 +22,13 @@ There are 4 main cmdlets:
 Each cmdlet works similarly, and what they do should be obvious, so I'll only go over how the **New-BulkADUser** cmdlet works to create new AD user accounts.
 
 ### Calling the cmdlet
-After running the script, I typed **New-BulkADUser** with no arguments into the terminal. 
+After running the script, type **New-BulkADUser** with no arguments into the terminal. 
 
 ![Opened up a file dialog](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_file-dialog.JPG?raw=true)
 
 This will bring up the file dialog where you can navigate to where your CSV file is.
 
-Alternatively, I could have also called the function two other ways:
+Alternatively, you can call the cmdlet two other ways:
 
 1. With an argument: **New-BulkADUser -LoadUsers 'C:\Path\to\File.csv'**
 
@@ -73,7 +73,7 @@ What happens if something goes wrong? Here are the most common errors.
 1. The account already exists.
 2. The CSV file was formatted improperly or contains illegal characters.
 3. You lack the permission to create user accounts.
-4. My code is broken (likely).
+4. The code is broken (sorry!).
 
 ### File dialog cancelled
 ![File dialog cancelled](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_file-dialog-cancelled.JPG?raw=true)
