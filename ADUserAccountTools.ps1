@@ -13,11 +13,14 @@ function New-Users {
         # Modify the path as needed, this is what works for my test environment
         $OUPath = "OU=Users,OU="+ $employee.department + ",OU=USA,DC=Test,DC=local"
 
+        $currentDate = Get-Date -Format "MM/dd/yyyy"
+        $description = "Created on $currentDate"
+
         ### CHANGE THE ATTRIBUTES BELOW BASED ON YOUR NEEDS ###
         # See the New-ADUser documentation for the full list of parameters: https://learn.microsoft.com/en-us/powershell/module/activedirectory/new-aduser?view=windowsserver2025-ps        
         $UserAttributes = @{
-            'GivenName' = $FullName
-            'Name'= $employee.FirstName 
+            'GivenName' = $employee.FirstName
+            'Name'= $FullName
             'Surname' = $employee.LastName 
             'DisplayName' = $FullName 
             'SamAccountName'= $employee.Username 
@@ -28,6 +31,9 @@ function New-Users {
             'Title' = $employee.jobtitle 
             'Enabled' = $true 
             'Path' = $OUPath
+            'Office' = $employee.officelocation
+            'OfficePhone' = $employee.phonenumber
+            'Description' = $description
         }
         New-AdUser @UserAttributes -ErrorAction Stop
 
@@ -239,7 +245,7 @@ function New-BulkADUser {
         if($LoadUsers -like "*.csv") {
             $WorkingWithFilePath = $true
             try {
-                $NewEmployeeInfo = Import-Csv -path $LoadUsers
+                $NewEmployeeInfo = Import-Csv -path $LoadUsers -ErrorAction Stop
             }
             catch {
                 $ImportSuccess = $false
@@ -573,6 +579,4 @@ function Enable-BulkADUser {
         # Return object array for users to see results or pipeline results further (E.g. with Export-Csv)
         $EnableResults
     }
-
-
 }
