@@ -1,18 +1,16 @@
-# ADUserAccountTools
-Bulk create, delete, enable, or disable AD users from a CSV or TXT file. 
+# ADUserAccountTools :wrench: :hammer:
+Bulk create, delete, enable, or disable AD users from a CSV or TXT file.
 
-Accepts pipeline input and returns the results of the operation as an object which can be pipelined further. 
+I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.  **I make no guarantees that this script won't break something. Use it at your own risk.**
 
-**I make no guarantees that this script won't break something. Use it at your own risk.**
-## Why I made it
-I created this script to improve my PowerShell scripting ability and to serve as a portfolio piece. 
-## What it does (Elevator pitch)
-1. Run the appropriate cmdlet.
+## How to use it (Brief)
+0. Clone the repo or download the files.
+1. Load the script (.ps1) in your environment and run the appropriate cmdlet in PowerShell.
 2. A file dialog will appear. Select the CSV or TXT file containing employee data.
 3. Cmdlet will create, delete, enable, or disable the user accounts listed in the CSV or TXT file.
-4. Cmdlet returns operation result as objects, allowing you to pipeline further.
+4. Cmdlet returns operation result as objects, allowing you to pipeline further, otherwise you're done.
 
-## What it does (In-depth)
+## How to use it (In-depth)
 There are 4 main cmdlets:
 1. **New-BulkADUser**
 2. **Remove-BulkADUser** 
@@ -57,13 +55,13 @@ There were so many accounts created, the results are cut off.
 ## Results
 ![Accounts in ADUC](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_accounts-in-AD.JPG?raw=true)
 
-The accounts were created in the correct OU (Only the user objects in the Sales OU shown).
+The accounts were created in the correct OU (Only the user objects in the Operations OU shown).
 
 ![Account properties filled in](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_account-properties.JPG?raw=true)
 
-The accounts also have the information provided by the CSV filled in (don't worry, they are all fake).
+The accounts also have the information provided by the CSV filled in (don't worry, they are all fake for this demonstration).
 
-## Failure States
+## Failure States :collision:
 What happens if something goes wrong? Here are the most common errors.
 
 ### The account(s) failed to be created for some reason
@@ -77,10 +75,12 @@ What happens if something goes wrong? Here are the most common errors.
 
 ### File dialog cancelled
 ![File dialog cancelled](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_file-dialog-cancelled.JPG?raw=true)
+
 If you press Cancel on the file dialog, the function will stop running and you need to call it again.
 
 ### Improper file selected
 ![Improper file selected](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_invalid-csv.JPG?raw=true)
+
 If you enter the wrong file path or a file that is not a CSV, an error message will trigger.
 
 ## How do the other functions work?
@@ -97,6 +97,39 @@ If you understood how the New-BulkADUsers function works, then you basically als
 ![Removed accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser_removed-accounts.JPG?raw=true)
 
 **Remove-BulkADUser** deletes the accounts listed in the CSV or TXT file.
+
+## Modifying the cmdlets for your personal use
+
+How exactly does each function iterate through a CSV or TXT file?
+
+### Modifying New-BulkADUser
+![Modifying parameters](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_modifying-parameters.JPG?raw=true)
+
+The **$UserAttributes** hash table, located in the **New-Users** function (which New-BulkADUser repeatedly calls to create each user) may need to be modified to suit your needs.
+
+The Key:Value pair corresponds to the **New-ADUser Parameter** (Key) and **CSV Data** (Value).
+
+Depending on which parameters you want to include and how your CSV file is formatted, you may need to change the code from how it currently is, or format your CSV to work with the code.
+
+![CSV Example](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/csv-data-example.JPG?raw=true)
+
+E.g. This is an example CSV. Instead of **Username**, maybe your CSV file lists user accounts as "Names" or "Users".
+
+### Modifying Enable-BulkADUser, Disable-BulkADUser, Remove-BulkADUser
+
+These cmdlets repeatedly call the **Remove-Users**, **Enable-Users**, and **Disable-Users** functions to do their respective job.
+
+For CSV files, the aforementioned functions loop through each CSV user object and look for the value stored in the **Username** attribute. Then it uses that value to delete/enable/disable the user account.
+
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/modifying-username.JPG?raw=true)
+
+Look specifically at the **$UserReference** variable, particularly this part: **else {$employee.username}**, and change "username" to whatever corresponding attribute is tied to the username in your CSV file.
+
+Find all instances of **$UserReference** and change the attribute to whatever you like.
+
+![TXT Example](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/usernames-in-notepad.JPG?raw=true)
+
+For TXT files, you just need to have one username per line. The cmdlet will iterate through the strings and use that username to delete the user account.
 
 ## Conclusion
 If you want to bulk create, remove, disable, or enable AD users from a CSV or TXT file, the functions provided by ADUserAccountTools can help you do that.
