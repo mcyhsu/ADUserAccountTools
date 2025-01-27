@@ -228,7 +228,7 @@ function Enable-Users {
 function New-BulkADUser {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]$LoadUsers
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]$LoadUser
     )
 
     BEGIN {
@@ -242,10 +242,10 @@ function New-BulkADUser {
         $ImportSuccess = $true
         
         # User provided a file path to a CSV file
-        if($LoadUsers -like "*.csv") {
+        if($LoadUser -like "*.csv") {
             $WorkingWithFilePath = $true
             try {
-                $NewEmployeeInfo = Import-Csv -path $LoadUsers -ErrorAction Stop
+                $NewEmployeeInfo = Import-Csv -path $LoadUser -ErrorAction Stop
             }
             catch {
                 $ImportSuccess = $false
@@ -253,12 +253,12 @@ function New-BulkADUser {
             }
         }
         # User provided an array of objects from Import-CSV. IMPORTANT: Only ONE object is pipelined at a time when an array is given as an argument.
-        elseif($LoadUsers) {          
+        elseif($LoadUser) {          
             # Unlike when a filepath is provided, where we can just Import-CSV and loop through it with foreach(), if an array of objects is provided
             # (E.g. from Import-CSV), then all the code in the PROCESS block will run PER ARGUMENT (object). So if you have a foreach loop, the foreach 
             # loop will run as many times as there are arguments. The PROCESS block itself is basically a foreach loop, so we don't need another loop!
             $WorkingWithObjects = $true
-            #$LoadUsers
+            #$LoadUser
         } 
         else {
             $WorkingWithFilePath = $true
@@ -294,7 +294,7 @@ function New-BulkADUser {
             # This is when a user provides us an array of objects - each object in the array is passed ONE AT A TIME; i.e. the cmdlet is called on each object individually
             # The PROCESS block runs each time the cmdlet is called on an object, acting as a foreach loop, so we DON'T need another loop in this case
             elseif($WorkingWithObjects) {
-                $CreationResults = New-Users -Employee $LoadUsers
+                $CreationResults = New-Users -Employee $LoadUser
             }
 
         }
@@ -310,7 +310,7 @@ function New-BulkADUser {
 function Remove-BulkADUser {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUsers,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUser,
         [Parameter(Mandatory=$false, ValueFromPipeline=$true)]$LoadedFromFile
     )
     BEGIN {
@@ -322,7 +322,7 @@ function Remove-BulkADUser {
 
     PROCESS {
         # If no values were passed through the pipeline, run the file dialog
-        if($LoadUsers -eq $null -and $LoadedFromFile -eq $null) {
+        if($LoadUser -eq $null -and $LoadedFromFile -eq $null) {
             $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
             # Sets the file dialog starting point at C:\
@@ -369,13 +369,13 @@ function Remove-BulkADUser {
         }
 
         # If a txt file was loaded by property name
-        elseif($LoadUsers -like "*.txt") {
-            $AccountsToDelete = Get-Content -Path $LoadUsers
+        elseif($LoadUser -like "*.txt") {
+            $AccountsToDelete = Get-Content -Path $LoadUser
             $DeletionResults = Remove-Users -AccountsToDelete $AccountsToDelete -CsvOrTxt 'txt'
         }
         # If a csv file was loaded loaded by property name
-        elseif($LoadUsers -like "*.csv") {
-            $AccountsToDelete = Import-Csv -Path $LoadUsers
+        elseif($LoadUser -like "*.csv") {
+            $AccountsToDelete = Import-Csv -Path $LoadUser
             $DeletionResults = Remove-Users -AccountsToDelete $AccountsToDelete -CsvOrTxt 'csv'
         }
         # If a string was passed through the pipeline (e.g. from Get-Content)
@@ -403,7 +403,7 @@ function Remove-BulkADUser {
 function Disable-BulkADUser {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUsers,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUser,
         [Parameter(Mandatory=$false, ValueFromPipeline=$true)]$LoadedFromFile
     )
 
@@ -416,7 +416,7 @@ function Disable-BulkADUser {
 
     PROCESS {
         # If no values are pipelined, open file dialog
-        if($LoadUsers -eq $null -and $LoadedFromFile -eq $null) {
+        if($LoadUser -eq $null -and $LoadedFromFile -eq $null) {
 
             $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
@@ -462,14 +462,14 @@ function Disable-BulkADUser {
                 $DisableResults = Disable-Users -AccountsToDisable $AccountsToDisable -CsvOrTxt $CsvOrTxt
             }
         }
-        # If a csv file is loaded by property name (E.g. Disable-BulkADUser -LoadUsers 'C:\Users.csv')
-        elseif($LoadUsers -like "*csv") {
-            $AccountsToDisable = Import-Csv -Path $LoadUsers
+        # If a csv file is loaded by property name (E.g. Disable-BulkADUser -LoadUser 'C:\Users.csv')
+        elseif($LoadUser -like "*csv") {
+            $AccountsToDisable = Import-Csv -Path $LoadUser
             $DisableResults = Disable-Users -AccountsToDisable $AccountsToDisable -CsvOrTxt 'csv'
         }
         # If a txt file is loaded by property name
-        elseif($LoadUsers -like "*txt") {
-            $AccountsToDisable = Get-Content -Path $LoadUsers
+        elseif($LoadUser -like "*txt") {
+            $AccountsToDisable = Get-Content -Path $LoadUser
             $DisableResults = Disable-Users -AccountsToDisable $AccountsToDisable -CsvOrTxt 'txt'
         }
         # If a txt file is loaded by pipeline (E.g. Get-Content -path 'C:\Users.txt' | Disable-BulkADUser), it will be one string at a time
@@ -495,7 +495,7 @@ function Disable-BulkADUser {
 function Enable-BulkADUser {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUsers,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]$LoadUser,
         [Parameter(Mandatory=$false, ValueFromPipeline=$true)]$LoadedFromFile
     )
 
@@ -508,7 +508,7 @@ function Enable-BulkADUser {
 
     PROCESS {
         # If user calls Enable-BulkADUser with no values provided, open the file dialog to load the CSV or TXT file
-        if($LoadUsers -eq $null -and $LoadedFromFile -eq $null) {
+        if($LoadUser -eq $null -and $LoadedFromFile -eq $null) {
         
             $DialogBox = New-Object -TypeName System.Windows.Forms.OpenFileDialog
 
@@ -554,13 +554,13 @@ function Enable-BulkADUser {
                 $EnableResults = Enable-Users -AccountsToEnable $AccountsToEnable -CsvOrTxt $CsvOrTxt
             }
         }
-        # If a CSV file was loaded by property name (E.g. Enable-BulkADUser -LoadUsers 'C:\UserData.csv'
-        elseif($LoadUsers -like "*.csv"){
-            $AccountsToEnable = Import-Csv -Path $LoadUsers
+        # If a CSV file was loaded by property name (E.g. Enable-BulkADUser -LoadUser 'C:\UserData.csv'
+        elseif($LoadUser -like "*.csv"){
+            $AccountsToEnable = Import-Csv -Path $LoadUser
             $EnableResults = Enable-Users -AccountsToEnable $AccountsToEnable -CsvOrTxt 'csv'
         }
-        elseif($LoadUsers -like "*.txt"){
-            $AccountsToEnable = Get-Content -Path $LoadUsers
+        elseif($LoadUser -like "*.txt"){
+            $AccountsToEnable = Get-Content -Path $LoadUser
             $EnableResults = Enable-Users -AccountsToEnable $AccountsToEnable -CsvOrTxt 'txt'
         }
         # If a value was pipelined like so: Import-Csv -path 'C:\UserData.csv' | Enable-BulkADUsers (Each value is passed to the cmdlet ONE AT A TIME; you are not given an array)

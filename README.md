@@ -33,7 +33,7 @@ This will bring up the file dialog where you can navigate to where your CSV file
 
 Alternatively, you can call the cmdlet two other ways:
 
-1. With an argument: **New-BulkADUser -LoadUsers 'C:\Path\to\File.csv'**
+1. With an argument: **New-BulkADUser -LoadUser 'C:\Path\to\File.csv'**
 
 2. By pipeline: **Import-Csv -Path 'C:\Path\to\File.csv' | New-BulkADUser**
 
@@ -47,7 +47,7 @@ You can see the function updating you on the progress of the operation in the te
 
 At the end of the operation, it returns the results as objects. This means you can pipeline it further, like so:
 
-**New-BulkADUser -LoadUsers 'C:\Path\to\File.csv' | Export-Csv -Path 'C:\Path\to\Results.csv' -NoTypeInformation**
+**New-BulkADUser -LoadUser 'C:\Path\to\File.csv' | Export-Csv -Path 'C:\Path\to\Results.csv' -NoTypeInformation**
 
 Congratulations, you just created a batch of AD user accounts from a CSV file and exported the results into another CSV file.
 
