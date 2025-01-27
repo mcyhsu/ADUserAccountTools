@@ -1,7 +1,8 @@
 # ADUserAccountTools
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/aduseraccounttools-hero.png?raw=true)
 Bulk create, delete, enable, or disable AD users from a CSV or TXT file.
 
-**Disclaimer**: I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.  **I make no guarantees that this script won't break something. Use it at your own risk.**
+I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.  **I make no guarantees that this script won't break something. Use it at your own risk.**
 
 ## How to use this script (Brief)
 0. Clone the repo or download the files.
@@ -153,7 +154,8 @@ I created this project to get a better understanding of not only PowerShell, but
 
 ADUserAccountTools was created almost entirely on Windows PowerShell ISE, on a VM running Windows Server 2022. This allowed me to freely test my functions in a safe environment without deleting or disabling any actual users.
 
-Icons used in some slides came from:
+Photo and icon credits:
+- Photo by Andrea Piacquadio: https://www.pexels.com/photo/man-in-white-dress-shirt-sitting-on-black-rolling-chair-while-facing-black-computer-set-and-smiling-840996/
 - <a href="https://www.flaticon.com/free-icons/accept" title="accept icons">Accept icons created by Bharat Icons - Flaticon</a>
 - <a href="https://www.flaticon.com/free-icons/deactivate-user" title="deactivate user icons">Deactivate user icons created by barrizon - Flaticon</a>
 - <a href="https://www.flaticon.com/free-icons/delete-account" title="delete account icons">Delete account icons created by Saepul Nahwan - Flaticon</a>
