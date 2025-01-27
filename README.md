@@ -1,18 +1,18 @@
-# ADUserAccountTools :wrench: :hammer:
+# ADUserAccountTools
 Bulk create, delete, enable, or disable AD users from a CSV or TXT file.
 
-I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.  **I make no guarantees that this script won't break something. Use it at your own risk.**
+**Disclaimer**: I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.  **I make no guarantees that this script won't break something. Use it at your own risk.**
 
-## How to use it (Brief)
+## How to use this script (Brief)
 0. Clone the repo or download the files.
 1. Load the script (.ps1) in your environment and run the appropriate cmdlet in PowerShell.
 2. A file dialog will appear. Select the CSV or TXT file containing employee data.
 3. Cmdlet will create, delete, enable, or disable the user accounts listed in the CSV or TXT file.
 4. Cmdlet returns operation result as objects, allowing you to pipeline further, otherwise you're done.
 
-## How to use it (In-depth)
+## How to use this script (In-depth)
 There are 4 main cmdlets:
-![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/cmdlet-overview.jpg?raw=true)
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/cmdlet-overview.png?raw=true)
 
 1. **New-BulkADUser**
 2. **Remove-BulkADUser** 
@@ -22,7 +22,7 @@ There are 4 main cmdlets:
 Each cmdlet works similarly, and what they do should be obvious, so I'll mostly go over how the **New-BulkADUser** cmdlet works to create new AD user accounts.
 
 ## New-BulkADUser Cmdlet
-![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser-overview.jpg?raw=true)
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser-overview.png?raw=true)
 
 ### Calling the cmdlet
 After running the script, type **New-BulkADUser** with no arguments into the terminal. 
@@ -91,21 +91,21 @@ If you enter the wrong file path or a file that is not a CSV, an error message w
 That is how the New-BulkADUser cmdlet works. The other cmdlets work similarly, so you can apply the same concept to them. I'll only briefly explain how they work below.
 
 ## Remove-BulkADUser
-![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser-overview.jpg?raw=true)
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser-overview.png?raw=true)
 
 ![Removed accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser_removed-accounts.JPG?raw=true)
 
 **Remove-BulkADUser** deletes the accounts listed in the CSV or TXT file.
 
 ## Disable-BulkADUser
-![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser-overview.jpg?raw=true)
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser-overview.png?raw=true)
 
 ![Disabled accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser_disabled-accounts.JPG?raw=true)
 
 **Disable-BulkADUser** disables the accounts listed in the CSV or TXT file.
 
 ## Enable-BulkADUser Cmdlet
-![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/enable-bulkaduser-overview.jpg?raw=true)
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/enable-bulkaduser-overview.png?raw=true)
 
 ![Enabled accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/enable-bulkadusers_enabled-accounts.JPG?raw=true)
 
@@ -113,7 +113,9 @@ That is how the New-BulkADUser cmdlet works. The other cmdlets work similarly, s
 
 ## Modifying the cmdlets for your personal use
 
-How exactly does each cmdlet iterate through a CSV or TXT file?
+This script might not work out of the box; certain attributes might need to be changed to match what they are called in your CSV files, for instance.
+
+Let's take a look at what that might look like.
 
 ### Modifying New-BulkADUser
 ![Modifying parameters](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_modifying-parameters.JPG?raw=true)
