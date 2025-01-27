@@ -12,12 +12,17 @@ I created this script to improve my PowerShell scripting skill and to serve as a
 
 ## How to use it (In-depth)
 There are 4 main cmdlets:
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/cmdlet-overview.jpg?raw=true)
+
 1. **New-BulkADUser**
 2. **Remove-BulkADUser** 
 3. **Enable-BulkADUser**
 4. **Disable-BulkADuser**
 
-Each cmdlet works similarly, and what they do should be obvious, so I'll only go over how the **New-BulkADUser** cmdlet works to create new AD user accounts.
+Each cmdlet works similarly, and what they do should be obvious, so I'll mostly go over how the **New-BulkADUser** cmdlet works to create new AD user accounts.
+
+## New-BulkADUser Cmdlet
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser-overview.jpg?raw=true)
 
 ### Calling the cmdlet
 After running the script, type **New-BulkADUser** with no arguments into the terminal. 
@@ -83,24 +88,32 @@ If you press Cancel on the file dialog, the function will stop running and you n
 
 If you enter the wrong file path or a file that is not a CSV, an error message will trigger.
 
-## How do the other functions work?
-If you understood how the New-BulkADUsers function works, then you basically also understand how the other ones work.
+That is how the New-BulkADUser cmdlet works. The other cmdlets work similarly, so you can apply the same concept to them. I'll only briefly explain how they work below.
 
-![Disabled accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser_disabled-accounts.JPG?raw=true)
-
-**Disable-BulkADUser** disables the accounts listed in the CSV or TXT file.
-
-![Enabled accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/enable-bulkadusers_enabled-accounts.JPG?raw=true)
-
-**Enable-BulkADuser** enables the accounts listed in the CSV or TXT file.
+## Remove-BulkADUser
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser-overview.jpg?raw=true)
 
 ![Removed accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser_removed-accounts.JPG?raw=true)
 
 **Remove-BulkADUser** deletes the accounts listed in the CSV or TXT file.
 
+## Disable-BulkADUser
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser-overview.jpg?raw=true)
+
+![Disabled accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser_disabled-accounts.JPG?raw=true)
+
+**Disable-BulkADUser** disables the accounts listed in the CSV or TXT file.
+
+## Enable-BulkADUser Cmdlet
+![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/enable-bulkaduser-overview.jpg?raw=true)
+
+![Enabled accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/enable-bulkadusers_enabled-accounts.JPG?raw=true)
+
+**Enable-BulkADuser** enables the accounts listed in the CSV or TXT file.
+
 ## Modifying the cmdlets for your personal use
 
-How exactly does each function iterate through a CSV or TXT file?
+How exactly does each cmdlet iterate through a CSV or TXT file?
 
 ### Modifying New-BulkADUser
 ![Modifying parameters](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_modifying-parameters.JPG?raw=true)
@@ -137,3 +150,9 @@ If you want to bulk create, remove, disable, or enable AD users from a CSV or TX
 I created this project to get a better understanding of not only PowerShell, but also Active Directory and its hierarchical structure. In a real world scenario with real data, I am confident I can create an even better script.
 
 ADUserAccountTools was created almost entirely on Windows PowerShell ISE, on a VM running Windows Server 2022. This allowed me to freely test my functions in a safe environment without deleting or disabling any actual users.
+
+Icons used in some slides came from:
+- <a href="https://www.flaticon.com/free-icons/accept" title="accept icons">Accept icons created by Bharat Icons - Flaticon</a>
+- <a href="https://www.flaticon.com/free-icons/deactivate-user" title="deactivate user icons">Deactivate user icons created by barrizon - Flaticon</a>
+- <a href="https://www.flaticon.com/free-icons/delete-account" title="delete account icons">Delete account icons created by Saepul Nahwan - Flaticon</a>
+- <a href="https://www.flaticon.com/free-icons/add" title="add icons">Add icons created by Freepik - Flaticon</a>
