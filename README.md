@@ -4,7 +4,6 @@
 I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.
 
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
 - [How to use this script (Brief)](#how-to-use-this-script-brief)
 - [How to use this script (In-depth)](#how-to-use-this-script-in-depth)
 - [New-BulkADUser Cmdlet](#new-bulkaduser-cmdlet)
