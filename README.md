@@ -1,8 +1,21 @@
-# ADUserAccountTools
 ![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/aduseraccounttools-hero.png?raw=true)
-Bulk create, delete, enable, or disable AD users from a CSV or TXT file.
+**Bulk create, delete, enable, or disable AD users from a CSV or TXT file.**
 
-I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.  **I make no guarantees that this script won't break something. Use it at your own risk.**
+I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.
+
+## Table of Contents
+- [Table of Contents](#table-of-contents)
+- [How to use this script (Brief)](#how-to-use-this-script-brief)
+- [How to use this script (In-depth)](#how-to-use-this-script-in-depth)
+- [New-BulkADUser Cmdlet](#new-bulkaduser-cmdlet)
+  - [Calling the cmdlet](#calling-the-cmdlet)
+  - [Creating the accounts](#creating-the-accounts)
+  - [Failure States](#failure-states)
+- [Remove-BulkADUser Cmdlet](#remove-bulkaduser-cmdlet)
+- [Disable-BulkADUser Cmdlet](#disable-bulkaduser-cmdlet)
+- [Enable-BulkADUser Cmdlet](#enable-bulkaduser-cmdlet)
+- [Modifying the cmdlets for your personal use](#modifying-the-cmdlets-for-your-personal-use)
+- [Conclusion](#conclusion)
 
 ## How to use this script (Brief)
 0. Clone the repo or download the files.
@@ -58,7 +71,6 @@ Now let's try creating 100 users.
 
 There were so many accounts created, the results are cut off.
 
-## Results
 ![Accounts in ADUC](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_accounts-in-AD.JPG?raw=true)
 
 The accounts were created in the correct OU (Only the user objects in the Operations OU shown).
@@ -67,38 +79,38 @@ The accounts were created in the correct OU (Only the user objects in the Operat
 
 The accounts also have the information provided by the CSV filled in (don't worry, they are all fake for this demonstration).
 
-## Failure States :collision:
+### Failure States
 What happens if something goes wrong? Here are the most common errors.
 
-### The account(s) failed to be created for some reason
+**The account(s) failed to be created for some reason**
 
 ![Account creation failure](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_account-not-created.JPG?raw=true)
-**Common Reasons:**
+Common Reasons:
 1. The account already exists.
 2. The CSV file was formatted improperly or contains illegal characters.
 3. You lack the permission to create user accounts.
 4. The code is broken (sorry!).
 
-### File dialog cancelled
+**File dialog cancelled**
 ![File dialog cancelled](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_file-dialog-cancelled.JPG?raw=true)
 
 If you press Cancel on the file dialog, the function will stop running and you need to call it again.
 
-### Improper file selected
+**Improper file selected**
 ![Improper file selected](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_invalid-csv.JPG?raw=true)
 
 If you enter the wrong file path or a file that is not a CSV, an error message will trigger.
 
 That is how the New-BulkADUser cmdlet works. The other cmdlets work similarly, so you can apply the same concept to them. I'll only briefly explain how they work below.
 
-## Remove-BulkADUser
+## Remove-BulkADUser Cmdlet
 ![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser-overview.png?raw=true)
 
 ![Removed accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/remove-bulkaduser_removed-accounts.JPG?raw=true)
 
 **Remove-BulkADUser** deletes the accounts listed in the CSV or TXT file.
 
-## Disable-BulkADUser
+## Disable-BulkADUser Cmdlet
 ![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser-overview.png?raw=true)
 
 ![Disabled accounts](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/disable-bulkaduser_disabled-accounts.JPG?raw=true)
@@ -118,7 +130,7 @@ This script might not work out of the box; certain attributes might need to be c
 
 Let's take a look at what that might look like.
 
-### Modifying New-BulkADUser
+**Modifying New-BulkADUser**
 ![Modifying parameters](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/new-bulkaduser_modifying-parameters.JPG?raw=true)
 
 The **$UserAttributes** hash table, located in the **New-Users** function (which New-BulkADUser repeatedly calls to create each user) may need to be modified to suit your needs.
@@ -131,7 +143,7 @@ Depending on which parameters you want to include and how your CSV file is forma
 
 E.g. This is an example CSV. Instead of **Username**, maybe your CSV file lists user accounts as "Names" or "Users".
 
-### Modifying Enable-BulkADUser, Disable-BulkADUser, Remove-BulkADUser
+**Modifying Enable-BulkADUser, Disable-BulkADUser, Remove-BulkADUser**
 
 These cmdlets repeatedly call the **Remove-Users**, **Enable-Users**, and **Disable-Users** functions to do their respective job.
 
@@ -154,7 +166,7 @@ I created this project to get a better understanding of not only PowerShell, but
 
 ADUserAccountTools was created almost entirely on Windows PowerShell ISE, on a VM running Windows Server 2022. This allowed me to freely test my functions in a safe environment without deleting or disabling any actual users.
 
-Photo and icon credits:
+**Photo and icon credits:**
 - Photo by Andrea Piacquadio: https://www.pexels.com/photo/man-in-white-dress-shirt-sitting-on-black-rolling-chair-while-facing-black-computer-set-and-smiling-840996/
 - <a href="https://www.flaticon.com/free-icons/accept" title="accept icons">Accept icons created by Bharat Icons - Flaticon</a>
 - <a href="https://www.flaticon.com/free-icons/deactivate-user" title="deactivate user icons">Deactivate user icons created by barrizon - Flaticon</a>
