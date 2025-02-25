@@ -18,10 +18,10 @@ I created this script to improve my PowerShell scripting skill and to serve as a
 
 ## How to use this script (Brief)
 0. Clone the repo or download the files.
-1. Load the script (.ps1) in your environment and run the appropriate cmdlet in PowerShell.
-2. A file dialog will appear. Select the CSV or TXT file containing employee data.
+1. Load the script (.ps1) in your environment and run the appropriate cmdlet ([New-BulkADUser](https://github.com/mcyhsu/ADUserAccountTools/edit/master/README.md#new-bulkaduser-cmdlet), [Enable-BulkADUser](https://github.com/mcyhsu/ADUserAccountTools/edit/master/README.md#enable-bulkaduser-cmdlet), [Disable-BulkADUser](https://github.com/mcyhsu/ADUserAccountTools/edit/master/README.md#disable-bulkaduser-cmdlet), [Remove-BulkADUser](https://github.com/mcyhsu/ADUserAccountTools/edit/master/README.md#remove-bulkaduser-cmdlet)).
+2. A file dialog will appear. Select the CSV or TXT file containing employee data. The CSV file needs to be [formatted a certain way](https://github.com/mcyhsu/ADUserAccountTools?tab=readme-ov-file#modifying-the-cmdlets-for-your-personal-use).
 3. Cmdlet will create, delete, enable, or disable the user accounts listed in the CSV or TXT file.
-4. Cmdlet returns operation result as objects, allowing you to pipeline further, otherwise you're done.
+4. Cmdlet returns operation result as an array of objects, allowing you to pipeline further, otherwise you're done.
 
 ## How to use this script (In-depth)
 There are 4 main cmdlets:
