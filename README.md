@@ -1,8 +1,6 @@
 ![](https://github.com/mcyhsu/ADUserAccountTools/blob/master/Assets/aduseraccounttools-hero.png?raw=true)
 **Bulk create, delete, enable, or disable AD users from a CSV or TXT file.**
 
-I created this script to improve my PowerShell scripting skill and to serve as a portfolio piece.
-
 ## Table of Contents
 - [How to use this script (Brief)](#how-to-use-this-script-brief)
 - [How to use this script (In-depth)](#how-to-use-this-script-in-depth)
